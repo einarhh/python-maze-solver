@@ -264,15 +264,6 @@ class Window:
 
 if __name__ == "__main__":
     win = Window(800, 600, "Title")
-    """
-    cell1 = Cell(win, Point(20, 20), Point(200, 100)).draw()
-
-    cell = Cell(win, Point(300, 10), Point(350, 20))
-    cell.has_bottom_wall = False
-    cell.has_left_wall = False
-    cell.draw()
-    cell1.draw_move(cell)
-    """
 
     # Draw the maze
     maze = Maze(width=800, height=600, num_cols=10, num_rows=10, win=win)
