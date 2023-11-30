@@ -134,7 +134,7 @@ class Cell:
         self._update_walls()
         to_cell._update_walls()
 
-    def get_walls(self) -> dict:
+    def _get_walls(self) -> dict:
         return {
             "left": self.left_wall,
             "right": self.right_wall,
@@ -143,10 +143,20 @@ class Cell:
         }
 
     def can_go_to(self, cell: Cell, direction) -> bool:
-        walls = self.get_walls()
-        if not walls[direction] and not cell.visited:
-            return True
-        return False
+        if cell.visited:
+            return False
+        walls = self._get_walls()
+        target_walls = cell._get_walls()
+        if direction == "left":
+            return not walls["left"] and not target_walls["right"]
+        elif direction == "right":
+            return not walls["right"] and not target_walls["left"]
+        elif direction == "top":
+            return not walls["top"] and not target_walls["bottom"]
+        elif direction == "bottom":
+            return not walls["bottom"] and not target_walls["top"]
+        else:
+            raise Exception("Invalid direction")
 
 
 class Maze:
@@ -324,9 +334,9 @@ if __name__ == "__main__":
     win = Window(800, 600, "Title")
 
     # Draw the maze
-    maze = Maze(width=800, height=600, num_cols=10, num_rows=10, win=win)
+    maze = Maze(width=800, height=600, num_cols=20, num_rows=20, win=win)
     maze._break_walls_r(0, 0)
-    maze._animate(interval=0.01)
+    maze._animate(interval=0.001)
 
     # Solve the maze
     maze._reset_cells_visited()
