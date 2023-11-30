@@ -11,6 +11,13 @@ class Point:
         self._x = x
         self._y = y
 
+    def __eq__(self, __value: Point) -> bool:
+        if not isinstance(__value, Point):
+            return False
+        if __value._x == self.x and __value._y == self.y:
+            return True
+        return False
+
 
 class Line:
     def __init__(self, p1: Point, p2: Point) -> None:
@@ -23,23 +30,36 @@ class Line:
                            self._p2._y, fill=fill_color, width=self.width)
         canvas.pack()
 
+    def __eq__(self, __value: Line) -> bool:
+        if not isinstance(__value, Line):
+            return False
+        if __value._p1 == self._p1 and __value._p2 == self._p2:
+            return True
+        return False
+
 
 class Cell:
-    def __init__(self, win: Window = None, p1: Point = None, p2: Point = None) -> None:
+    def __init__(self, win: Window = None, I=0, J=0, p1: Point = None, p2: Point = None) -> None:
         self._x1 = p1._x if p1 else 0
         self._x2 = p2._x if p2 else 0
         self._y1 = p1._y if p1 else 0
         self._y2 = p2._y if p2 else 0
+        self._I = I
+        self._J = J
         self._win = win
         self._line_color = "black"
         self.has_left_wall = True
         self.has_right_wall = True
         self.has_top_wall = True
         self.has_bottom_wall = True
-        self._left_wall = None
-        self._right_wall = None
-        self._top_wall = None
-        self._bottom_wall = None
+        self.left_wall: Line = None
+        self.right_wall: Line = None
+        self.top_wall: Line = None
+        self.bottom_wall: Line = None
+        self._left_wall = None  # ID
+        self._right_wall = None  # ID
+        self._top_wall = None  # ID
+        self._bottom_wall = None  # ID
         self.visited = False
 
     def draw(self, p1: Point = None, p2: Point = None):
@@ -81,15 +101,19 @@ class Cell:
         if self._left_wall and not self.has_left_wall:
             self._win._canvas.delete(self._left_wall)
             self._left_wall = None
+            self.left_wall = None
         if self._right_wall and not self.has_right_wall:
             self._win._canvas.delete(self._right_wall)
             self._right_wall = None
+            self.right_wall = None
         if self._top_wall and not self.has_top_wall:
             self._win._canvas.delete(self._top_wall)
             self._top_wall = None
+            self.top_wall = None
         if self._bottom_wall and not self.has_bottom_wall:
             self._win._canvas.delete(self._bottom_wall)
             self._bottom_wall = None
+            self.bottom_wall = None
 
     def break_down_wall(self, to_cell: Cell = None, direction: str = None) -> None:
         # Break walls
@@ -109,6 +133,20 @@ class Cell:
         # Update
         self._update_walls()
         to_cell._update_walls()
+
+    def get_walls(self) -> dict:
+        return {
+            "left": self.left_wall,
+            "right": self.right_wall,
+            "top": self.top_wall,
+            "bottom": self.bottom_wall
+        }
+
+    def can_go_to(self, cell: Cell, direction) -> bool:
+        walls = self.get_walls()
+        if not walls[direction] and not cell.visited:
+            return True
+        return False
 
 
 class Maze:
@@ -143,10 +181,10 @@ class Maze:
         self._break_entrance_and_exit(draw=False)
 
     def _create_cells(self):
-        for _ in range(0, self._num_cols):
+        for I in range(0, self._num_cols):
             column = []
-            for _ in range(0, self._num_rows):
-                cell = Cell(self._win)
+            for J in range(0, self._num_rows):
+                cell = Cell(self._win, I=I, J=J)
                 column.append(cell)
             self._cells.append(column)
 
@@ -163,12 +201,19 @@ class Maze:
             for j in range(len(self._cells[i])):
                 self._draw_cell(i, j)
 
-    def _animate(self, interval=0.02):
-        for i in range(len(self._cells)):
-            for j in range(len(self._cells[i])):
-                self._draw_cell(i, j)
+    def _animate(self, interval=0.02, cells=None):
+        if isinstance(cells, list):
+            cell: Cell
+            for cell in cells:
+                self._draw_cell(cell._I, cell._J)
                 time.sleep(interval)
                 self._win.redraw()
+        else:
+            for i in range(len(self._cells)):
+                for j in range(len(self._cells[i])):
+                    self._draw_cell(i, j)
+                    time.sleep(interval)
+                    self._win.redraw()
 
     def _break_entrance_and_exit(self, draw=True):
         entrance: Cell = self._cells[0][0]
@@ -185,36 +230,29 @@ class Maze:
             entrance.draw()
             exit.draw()
 
-    def _break_walls_r(self, I, J):
+    def _get_neighbors(self, I, J) -> dict:
+        return {
+            "left": self._cells[I-1][J] if I > 0 else None,
+            "right": self._cells[I+1][J] if I < len(self._cells) - 1 else None,
+            "top": self._cells[I][J-1] if J > 0 else None,
+            "bottom": self._cells[I][J+1] if J < len(self._cells[I]) - 1 else None
+        }
+
+    def _break_walls_r(self, I, J) -> None:
         cell: Cell = self._cells[I][J]
         cell.visited = True
 
-        # Found exit
-        if I == len(self._cells) - 1 and J == len(self._cells[I]) - 1:
-            print("Exit")
-
         while True:
             possible_routes = []
-            # Left
-            if I > 0 and not self._cells[I-1][J].visited:
-                possible_routes.append(
-                    (I-1, J, "left"))
-            # Top
-            if J > 0 and not self._cells[I][J-1].visited:
-                possible_routes.append(
-                    (I, J-1, "top"))
-            # Right
-            if I < len(self._cells) - 1 and not self._cells[I+1][J].visited:
-                possible_routes.append(
-                    (I+1, J, "right"))
-            # Bottom
-            if J < len(self._cells[I]) - 1 and not self._cells[I][J+1].visited:
-                possible_routes.append(
-                    (I, J+1, "bottom"))
+            neighbors = self._get_neighbors(I, J)
+            for direction, neighbor_cell in neighbors.items():
+                if neighbor_cell and not neighbor_cell.visited:
+                    possible_routes.append(
+                        (neighbor_cell._I, neighbor_cell._J, direction))
 
             if len(possible_routes):
-                chosen_route = possible_routes.pop(random.randint(
-                    0, len(possible_routes) - 1))
+                idx = random.randint(0, len(possible_routes) - 1)
+                chosen_route = possible_routes.pop(idx)
                 target_cell: Cell = self._cells[chosen_route[0]
                                                 ][chosen_route[1]]
                 # Break down walls
@@ -228,6 +266,26 @@ class Maze:
         for col in self._cells:
             for cell in col:
                 cell.visited = False
+
+    def solve(self):
+        self._solve_r(0, 0)
+
+    def _solve_r(self, I, J):
+        cell: Cell = self._cells[I][J]
+        cell.visited = True
+        self._animate(cells=[cell])
+
+        if I == len(self._cells) - 1 and J == len(self._cells[I]) - 1:
+            return True
+
+        neighbors = self._get_neighbors(I, J)
+        for direction, neighbor_cell in neighbors.items():
+            if neighbor_cell and cell.can_go_to(neighbor_cell, direction):
+                cell.draw_move(to_cell=neighbor_cell)
+                solved = self._solve_r(neighbor_cell._I, neighbor_cell._J)
+                if solved:
+                    return True
+                cell.draw_move(to_cell=neighbor_cell, undo=True)
 
 
 class Window:
@@ -270,7 +328,8 @@ if __name__ == "__main__":
     maze._break_walls_r(0, 0)
     maze._animate(interval=0.01)
 
-    # Reset visited
+    # Solve the maze
     maze._reset_cells_visited()
+    maze.solve()
 
     win.wait_for_close()
