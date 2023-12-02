@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 import random
 
-from tkinter import Tk, BOTH, Canvas
+from tkinter import Tk, Canvas
 
 
 class Point:
@@ -62,7 +62,7 @@ class Cell:
         self._bottom_wall = None  # ID
         self.visited = False
 
-    def draw(self, p1: Point = None, p2: Point = None):
+    def draw(self, p1: Point = None, p2: Point = None) -> Cell:
         self._update_walls()
         if p1:
             self._x1 = p1._x
@@ -88,7 +88,7 @@ class Cell:
             self.left_wall.draw(self._win._canvas, self._line_color)
         return self
 
-    def draw_move(self, to_cell: Cell, undo=False):
+    def draw_move(self, to_cell: Cell, undo=False) -> None:
         line_color = "gray" if undo else "red"
         p1 = Point((self._x2 - self._x1) // 2 + self._x1,
                    (self._y2 - self._y1) // 2 + self._y1)
@@ -97,7 +97,7 @@ class Cell:
         line = Line(p1, p2)
         line.draw(self._win._canvas, fill_color=line_color)
 
-    def _update_walls(self):
+    def _update_walls(self) -> None:
         if self._left_wall and not self.has_left_wall:
             self._win._canvas.delete(self._left_wall)
             self._left_wall = None
@@ -168,11 +168,9 @@ class Maze:
         height=600,
         num_rows=0,
         num_cols=0,
-        # cell_size_x,
-        # cell_size_y,
         win=None,
         seed=None
-    ):
+    ) -> None:
         self._x1 = x1
         self._y1 = y1
         self._width = width
@@ -190,7 +188,7 @@ class Maze:
         self._create_cells()
         self._break_entrance_and_exit(draw=False)
 
-    def _create_cells(self):
+    def _create_cells(self) -> None:
         for I in range(0, self._num_cols):
             column = []
             for J in range(0, self._num_rows):
@@ -198,7 +196,7 @@ class Maze:
                 column.append(cell)
             self._cells.append(column)
 
-    def _draw_cell(self, I, J):
+    def _draw_cell(self, I, J) -> None:
         x1 = self._x1 + I * self._cell_size_x
         x2 = x1 + self._cell_size_x
         y1 = self._y1 + J * self._cell_size_y
@@ -206,12 +204,12 @@ class Maze:
         cell: Cell = self._cells[I][J]
         cell.draw(Point(x1, y1), Point(x2, y2))
 
-    def _draw_cells(self):
+    def _draw_cells(self) -> None:
         for i in range(len(self._cells)):
             for j in range(len(self._cells[i])):
                 self._draw_cell(i, j)
 
-    def _animate(self, interval=0.02, cells=None):
+    def _animate(self, interval=0.02, cells=None) -> None:
         if isinstance(cells, list):
             cell: Cell
             for cell in cells:
@@ -225,7 +223,7 @@ class Maze:
                     time.sleep(interval)
                     self._win.redraw()
 
-    def _break_entrance_and_exit(self, draw=True):
+    def _break_entrance_and_exit(self, draw=True) -> None:
         entrance: Cell = self._cells[0][0]
         exit: Cell = self._cells[len(self._cells) - 1][len(self._cells[0]) - 1]
         entrance.has_bottom_wall = False
@@ -272,15 +270,17 @@ class Maze:
             else:
                 break
 
-    def _reset_cells_visited(self):
+    def _reset_cells_visited(self) -> None:
         for col in self._cells:
             for cell in col:
                 cell.visited = False
 
-    def solve(self):
+    def solve(self) -> None:
+        """Solve the maze"""
         self._solve_r(0, 0)
 
-    def _solve_r(self, I, J):
+    def _solve_r(self, I, J) -> None:
+        """Recursive helper function for solving"""
         cell: Cell = self._cells[I][J]
         cell.visited = True
         self._animate(cells=[cell])
@@ -331,9 +331,9 @@ class Window:
 
 
 if __name__ == "__main__":
-    win = Window(800, 600, "Title")
+    win = Window(800, 600, "Maze Solver")
 
-    # Draw the maze
+    # Setup and draw a maze
     maze = Maze(width=800, height=600, num_cols=20, num_rows=20, win=win)
     maze._break_walls_r(0, 0)
     maze._animate(interval=0.001)
